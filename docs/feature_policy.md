@@ -2,65 +2,29 @@
 
 ## 1. Purpose
 
-This document defines the derived features used in the Credit Risk Decision Support project. The objective is to represent historical repayment behaviour, bill amounts, and payment activity in a form suitable for exploratory analysis and credit-default modelling.
+In this project, I wanted to create a few features that summarise clients' repayment behaviour and financial activity across the six months of historical data. The original dataset already contained repayment status, bill amounts, payment amounts, and credit limits, but I wanted to see whether some of this information could be represented in a more compact form for analysis and modelling.
 
-The cleaned source dataset remains unchanged. Derived features will be created in a separate modelling dataset.
+I kept the original variables and created the engineered features in a separate dataset. This allowed me to compare the derived features with the original data without changing the cleaned source file.
 
-## 2. Approved Features
+## 2. Features Considered
 
-| Feature | Formula | Interpretation |
+During feature engineering, I considered seven derived features.
+
+| Feature | Formula | Purpose |
 |---|---|---|
-| `average_bill_amount` | Mean of `BILL_AMT1` to `BILL_AMT6` | Average statement balance across six months |
-| `average_payment_amount` | Mean of `PAY_AMT1` to `PAY_AMT6` | Average payment amount across six months |
-| `payment_to_bill_ratio` | Sum of six payment amounts / Sum of six bill amounts | Payment activity relative to statement balances |
-| `maximum_payment_delay` | Maximum positive value across `PAY_0`, `PAY_2`–`PAY_6` | Highest recorded positive repayment-delay code |
-| `number_of_months_with_delay` | Count of repayment-status values greater than zero | Number of months with a recorded positive delay |
-| `latest_bill_to_credit_limit_ratio` | `BILL_AMT1 / LIMIT_BAL` | Latest statement balance relative to credit limit |
-| `latest_payment_to_bill_ratio` | `PAY_AMT1 / BILL_AMT1` | Latest payment relative to the latest statement balance |
+| `average_bill_amount` | Mean of `BILL_AMT1` to `BILL_AMT6` | Summarises the average bill amount across six months |
+| `average_payment_amount` | Mean of `PAY_AMT1` to `PAY_AMT6` | Summarises the average payment amount across six months |
+| `payment_to_bill_ratio` | Sum of six payment amounts divided by the sum of six bill amounts | Compares total payment activity with total bill amounts |
+| `maximum_payment_delay` | Maximum of `PAY_0`, `PAY_2`, `PAY_3`, `PAY_4`, `PAY_5`, and `PAY_6` | Captures the highest repayment-status code recorded across the six months |
+| `number_of_months_with_delay` | Count of repayment-status values greater than zero | Measures how often a positive repayment-delay code appeared |
+| `latest_bill_to_credit_limit_ratio` | `BILL_AMT1 / LIMIT_BAL` | Compares the latest bill amount with the client's credit limit |
+| `latest_payment_to_bill_ratio` | `PAY_AMT1 / BILL_AMT1` | Compares the latest payment amount with the latest bill amount |
 
-## 3. Calculation Rules
+I did not retain all seven features. After inspecting the ratio calculations, I excluded `payment_to_bill_ratio` and `latest_payment_to_bill_ratio` from the final engineered dataset.
 
-- Bill amounts use `BILL_AMT1` through `BILL_AMT6`.
-- Payment amounts use `PAY_AMT1` through `PAY_AMT6`.
-- Repayment history uses `PAY_0`, `PAY_2`, `PAY_3`, `PAY_4`, `PAY_5`, and `PAY_6`.
-- Only repayment-status values greater than zero count as positive delays. Codes `-2`, `-1`, and `0` are not counted as positive delays.
-- The original repayment-status values are retained; they are not recoded by these calculations.
+## 3. Final Feature Selection
 
-## 4. Zero-Denominator Handling
-
-For ratio features, division by zero must not produce infinity or an invalid numerical value.
-
-- If the denominator is zero, the ratio will be set to `NaN`.
-- These cases will be counted and inspected before deciding how they should be handled during modelling.
-- Negative bill amounts will not automatically be treated as errors or missing values.
-
-For `payment_to_bill_ratio`, the denominator is the sum of the six bill amounts. For `latest_payment_to_bill_ratio`, the denominator is `BILL_AMT1`.
-
-## 5. Target Leakage Prevention
-
-The target variable is `Y`, representing default payment next month. All derived features use the historical credit, bill, payment, and repayment-status variables available in the dataset.
-
-The target `Y` must not be used to calculate any feature. It will remain the outcome variable for model training and evaluation.
-
-## 6. Feature Restrictions and Limitations
-
-- `ID` is not a predictive feature.
-- `SEX`, `EDUCATION`, and `MARRIAGE` are excluded from the primary model and reserved for a limited outcome audit.
-- `AGE` will be considered only after discussing its ethical limitations and comparing models with and without it.
-- Ratios and averages summarise historical behaviour but do not establish causal relationships.
-- The dataset represents Taiwanese credit-card clients and historical data from 2005. Results should not be assumed to generalise to current borrowers or the Indian credit market.
-
-## 7. Status
-
-Approved feature definitions for Phase 2. Implementation, zero-denominator checks, and validation will be completed in the notebook before modelling.
-
-## 8. Zero-Denominator Handling
-
-For both ratio features, the denominator must be positive. If the denominator is zero or negative, the ratio is set to `NaN` because the resulting ratio may be undefined or misleading. The original bill and payment amounts remain unchanged. Missing ratio values will be assessed before modelling; no arbitrary imputation or outlier capping will be applied during feature engineering.
-
-## 9. Final Feature Selection
-
-Five engineered features are retained in the current dataset:
+The final dataset contains five engineered features:
 
 1. `average_bill_amount`
 2. `average_payment_amount`
@@ -68,6 +32,60 @@ Five engineered features are retained in the current dataset:
 4. `number_of_months_with_delay`
 5. `latest_bill_to_credit_limit_ratio`
 
-The features `payment_to_bill_ratio` and `latest_payment_to_bill_ratio` were excluded from the final engineered dataset because very small positive bill amounts produced extreme ratios that could be misleading. The original bill and payment values were retained without modification.
+The two excluded ratios could produce extreme values when their bill denominators were very small. This made them difficult to interpret reliably. Rather than cap these values arbitrarily or introduce another transformation just to retain the features, I decided to exclude them and keep the original bill and payment amounts unchanged.
 
-All five retained engineered features have zero missing values. The final engineered dataset contains 29,965 rows and 29 columns, including the original predictors and target variable.
+This was a practical modelling decision for this dataset, not a claim that payment-to-bill ratios are never useful.
+
+## 4. Calculation Rules
+
+### Average bill and payment amounts
+
+I calculated the average bill amount from `BILL_AMT1` through `BILL_AMT6` and the average payment amount from `PAY_AMT1` through `PAY_AMT6`.
+
+These features summarise the six historical observations. They do not describe a client's current financial position.
+
+### Repayment behaviour
+
+The repayment history uses `PAY_0`, `PAY_2`, `PAY_3`, `PAY_4`, `PAY_5`, and `PAY_6`.
+
+`maximum_payment_delay` records the maximum value across these variables. Since the original repayment-status codes include negative values and zero as well as positive values, I retained the original codes rather than recoding them during feature engineering.
+
+`number_of_months_with_delay` counts the months in which the repayment-status value was greater than zero. Codes `-2`, `-1`, and `0` therefore do not contribute to this count.
+
+These are summaries of the recorded repayment-status codes. They should not be interpreted as a complete measure of every aspect of a client's repayment behaviour.
+
+### Latest bill-to-credit-limit ratio
+
+I calculated `latest_bill_to_credit_limit_ratio` as:
+
+`BILL_AMT1 / LIMIT_BAL`
+
+The ratio is calculated only when `LIMIT_BAL` is positive. When the credit limit is zero or negative, the feature is set to `NaN`. Negative bill amounts are retained because they occur in the source data and should not automatically be treated as errors.
+
+I did not cap the ratio values during feature engineering.
+
+## 5. Target Leakage and Predictor Selection
+
+The target variable is `Y`, which records whether the client defaulted on payment in the following month. I did not use `Y` to calculate any engineered feature.
+
+For the primary modelling exercise, I excluded `SEX`, `EDUCATION`, `MARRIAGE`, and `AGE` from the predictor set. The model used the remaining 19 original predictors together with the five engineered features, giving 24 predictors in total.
+
+This restriction was a modelling choice for the project. It does not establish that the model is free from bias, and excluding these demographic variables does not rule out indirect relationships between the remaining predictors and demographic characteristics.
+
+## 6. Validation and Final Dataset
+
+I saved the engineered dataset as `data/processed/credit_default_engineered.csv`. It contains **29,965 rows and 29 columns**, including the original variables, target, and five engineered features.
+
+During the SQL Server import, I found that 196 values in `latest_bill_to_credit_limit_ratio` had been lost. I checked the original CSV, confirmed that the ratios were available there, and restored the missing SQL values using the original formula for rows with positive credit limits.
+
+After the repair, the SQL completeness check reported zero missing values across the five engineered features. A separate ratio validation query returned zero mismatches between the stored ratio and the calculation from `BILL_AMT1` and `LIMIT_BAL`.
+
+These checks confirm the completeness of the retained engineered features in the final SQL table and the consistency of the ratio calculation. They do not, by themselves, establish that the features improve model performance.
+
+## 7. Limitations
+
+The engineered features summarise historical data from Taiwanese credit-card clients around 2005. Their usefulness may differ for other populations or more recent lending environments.
+
+Averages can hide changes between months, and repayment-status summaries compress several different codes into simple measures. The bill-to-credit-limit ratio can also be difficult to interpret when bill amounts are negative.
+
+I used these features to support exploratory analysis and model comparison. Their inclusion should not be taken as evidence of a causal relationship with default or as proof that they are suitable for real lending decisions.

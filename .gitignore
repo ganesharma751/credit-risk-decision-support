@@ -1,18 +1,21 @@
-
-# Ignore Python cache files
-__pycache__/
-*.py[cod]
-
-# Ignore virtual environments
+# Python environment and cache
 .venv/
 venv/
-
-# Ignore Jupyter temporary checkpoint files
+__pycache__/
+*.py[cod]
 .ipynb_checkpoints/
 
-# Ignore local environment variables and secrets
+# Secrets and local configuration
 .env
+.env.*
+!.env.example
 
-# Ignore operating-system files
+# Editor and operating-system files
+.vscode/
 .DS_Store
 Thumbs.db
+
+# Temporary files and logs
+*.log
+*.tmp
+~$*

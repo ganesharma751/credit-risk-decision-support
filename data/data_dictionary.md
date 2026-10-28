@@ -1,81 +1,108 @@
 # Data Dictionary — Default of Credit Card Clients
 
-## Dataset Overview
+## 1. Dataset Overview
 
-This project uses the Default of Credit Card Clients dataset from the UCI Machine Learning Repository. It contains 30,000 observations of credit-card clients in Taiwan and is used to study whether past repayment behaviour and financial information can help predict default payment in the following month.
+I used the Default of Credit Card Clients dataset from the UCI Machine Learning Repository to study the relationship between historical repayment behaviour, credit limits, bill amounts, payment amounts, and credit-card default.
 
-The dataset contains 23 predictor variables and one target variable. The UCI Python package returns the predictors as `X1` to `X23` and the target as `Y`.
+The original dataset contains 30,000 observations from Taiwan. The UCI Python package initially returned the predictor variables as `X1` to `X23` and the target as `Y`. During data preparation, I worked with descriptive column names so the variables would be easier to understand and use in Python, SQL Server, and Power BI.
 
-## Variable Definitions
+After removing 35 exact duplicate records, the working dataset contained **29,965 observations**. The cleaned dataset has 23 original predictors and the target variable, while the engineered dataset contains five additional features.
 
-| Variable | Description |
-|---|---|
-| `X1` | Credit limit in New Taiwan dollars |
-| `X2` | Sex: 1 = male, 2 = female |
-| `X3` | Education level: 1 = graduate school, 2 = university, 3 = high school, 4 = others |
-| `X4` | Marital status: 1 = married, 2 = single, 3 = others |
-| `X5` | Age in years |
-| `X6` | Repayment status in September 2005 |
-| `X7` | Repayment status in August 2005 |
-| `X8` | Repayment status in July 2005 |
-| `X9` | Repayment status in June 2005 |
-| `X10` | Repayment status in May 2005 |
-| `X11` | Repayment status in April 2005 |
-| `X12` | Bill statement amount in September 2005 |
-| `X13` | Bill statement amount in August 2005 |
-| `X14` | Bill statement amount in July 2005 |
-| `X15` | Bill statement amount in June 2005 |
-| `X16` | Bill statement amount in May 2005 |
-| `X17` | Bill statement amount in April 2005 |
-| `X18` | Previous payment amount in September 2005 |
-| `X19` | Previous payment amount in August 2005 |
-| `X20` | Previous payment amount in July 2005 |
-| `X21` | Previous payment amount in June 2005 |
-| `X22` | Previous payment amount in May 2005 |
-| `X23` | Previous payment amount in April 2005 |
-| `Y` | Default payment in the following month: 1 = default, 0 = no default |
+## 2. Original Variable Definitions
 
-### Repayment Status Encoding
+The following table maps the original dataset variables to their descriptive column names.
 
-The repayment-status variables use the following coding described by the dataset documentation:
+| Original variable | Project column name | Description |
+|---|---|---|
+| `X1` | `LIMIT_BAL` | Credit limit in New Taiwan dollars |
+| `X2` | `SEX` | Sex: 1 = male, 2 = female |
+| `X3` | `EDUCATION` | Education level: 1 = graduate school, 2 = university, 3 = high school, 4 = others |
+| `X4` | `MARRIAGE` | Marital status: 1 = married, 2 = single, 3 = others |
+| `X5` | `AGE` | Age in years |
+| `X6` | `PAY_0` | Repayment status in September 2005 |
+| `X7` | `PAY_2` | Repayment status in August 2005 |
+| `X8` | `PAY_3` | Repayment status in July 2005 |
+| `X9` | `PAY_4` | Repayment status in June 2005 |
+| `X10` | `PAY_5` | Repayment status in May 2005 |
+| `X11` | `PAY_6` | Repayment status in April 2005 |
+| `X12` | `BILL_AMT1` | Bill statement amount in September 2005 |
+| `X13` | `BILL_AMT2` | Bill statement amount in August 2005 |
+| `X14` | `BILL_AMT3` | Bill statement amount in July 2005 |
+| `X15` | `BILL_AMT4` | Bill statement amount in June 2005 |
+| `X16` | `BILL_AMT5` | Bill statement amount in May 2005 |
+| `X17` | `BILL_AMT6` | Bill statement amount in April 2005 |
+| `X18` | `PAY_AMT1` | Payment amount in September 2005 |
+| `X19` | `PAY_AMT2` | Payment amount in August 2005 |
+| `X20` | `PAY_AMT3` | Payment amount in July 2005 |
+| `X21` | `PAY_AMT4` | Payment amount in June 2005 |
+| `X22` | `PAY_AMT5` | Payment amount in May 2005 |
+| `X23` | `PAY_AMT6` | Payment amount in April 2005 |
+| `Y` | `Y` | Default payment in the following month: 1 = default, 0 = no default |
 
-- `-1` = paid duly
-- `1` to `8` = payment delayed by the corresponding number of months
-- `9` = payment delayed by nine months or more
+The repayment, bill, and payment variables use different suffix conventions, so I kept the original descriptive column names after renaming the variables. This also made it easier to connect the prepared data to SQL Server and Power BI.
 
-The meaning of the value `0` is not explicitly defined in the variable information reproduced here. It will be inspected during data exploration rather than assigned an interpretation without verification.
+## 3. Repayment Status Encoding
 
-## Target Distribution
+The repayment-status variables record the repayment status for each historical month.
 
-The initial inspection returned the following counts:
+- `-1`: Paid duly, according to the dataset documentation.
+- `1` to `8`: Repayment delay categories corresponding to the number of months delayed.
+- `0`: A separate category in the data. I retained it as recorded rather than assigning it an interpretation that the supplied variable description did not establish.
+- `9`: The original variable description includes this as a category for delays of nine months or more, although the observed repayment-status values in the working dataset should be checked before drawing conclusions about this category.
 
-| Target | Number of clients | Percentage |
-|---|---:|---:|
-| No default (`Y = 0`) | 23,364 | 77.88% |
-| Default (`Y = 1`) | 6,636 | 22.12% |
-| Total | 30,000 | 100% |
+In the project, `PAY_0` represents the latest repayment-status variable, corresponding to September 2005. It was used in the SQL analysis to compare default rates across repayment-status categories.
 
-The target is imbalanced because the number of non-defaulting clients is considerably higher than the number of defaulting clients. Model evaluation will therefore include precision, recall, F1-score and ROC-AUC rather than relying on accuracy alone.
+## 4. Target Variable and Distribution
 
-## Initial Data Quality Checks
+The target variable is `Y`.
 
-- The imported feature matrix contains 30,000 rows and 23 columns.
-- The target contains 30,000 rows and one column.
-- No missing values were reported in the imported feature columns.
-- There are 56 rows with repeated feature values.
-- There are 35 exact duplicate records when both predictors and the target are considered.
-- There are 21 feature combinations associated with more than one target value.
+| Value | Meaning | Records | Percentage |
+|---|---|---:|---:|
+| `0` | No default | 23,335 | 77.87% |
+| `1` | Default | 6,630 | 22.13% |
+| **Total** | | **29,965** | **100%** |
 
-Repeated feature values do not necessarily represent duplicate clients. These observations will be investigated during data cleaning, and no records will be removed without a clear reason.
+The target is imbalanced because non-defaulting clients substantially outnumber defaulting clients. For that reason, I evaluated the classification models using precision, recall, F1-score, and ROC-AUC alongside accuracy.
 
-## Feature Policy
+## 5. Engineered Features
 
-The primary model will exclude the ID, sex, education and marital-status variables. Sex, education and marital status will be reserved for a limited fairness audit. Age will be considered only after discussing its ethical limitations and comparing model results with and without it.
+I added five features to summarise repayment and financial behaviour across the historical observations.
 
-The final predictor set will be documented after the data-cleaning and feature-engineering stages.
+| Feature | Description | Calculation |
+|---|---|---|
+| `average_bill_amount` | Average bill statement amount across the six historical months | Mean of `BILL_AMT1` to `BILL_AMT6` |
+| `average_payment_amount` | Average payment amount across the six historical months | Mean of `PAY_AMT1` to `PAY_AMT6` |
+| `maximum_payment_delay` | Maximum recorded repayment-delay value across the repayment-status variables | Maximum of `PAY_0`, `PAY_2`, `PAY_3`, `PAY_4`, `PAY_5`, and `PAY_6` |
+| `number_of_months_with_delay` | Number of months with a positive repayment-status value | Count of repayment-status values greater than zero |
+| `latest_bill_to_credit_limit_ratio` | Latest bill amount relative to the client's credit limit | `BILL_AMT1 / LIMIT_BAL`, when `LIMIT_BAL` is positive |
 
-## Source
+These features were intended to provide a more compact summary of repayment behaviour and financial activity. The ratio feature can be negative when the latest bill amount is negative; this is retained rather than automatically treated as an error.
+
+I excluded two additional payment-to-bill ratio features from the final engineered dataset because very small bill amounts could produce extreme ratios that would be difficult to interpret reliably. The reasons for this decision are documented in `docs/feature_policy.md`.
+
+## 6. Data Quality and Preparation
+
+The original dataset contained 30,000 records. During cleaning, I identified 35 exact duplicate rows and removed them, leaving 29,965 records.
+
+The final prepared files are:
+
+- `data/processed/credit_default_clean.csv` — cleaned original variables and target.
+- `data/processed/credit_default_engineered.csv` — cleaned data with the five engineered features.
+
+I also imported the engineered dataset into the `CreditRiskDB` database in SQL Server. During the import, 196 values in `latest_bill_to_credit_limit_ratio` were lost. I identified this issue by comparing the imported values with the feature formula and restored those ratios using `BILL_AMT1 / LIMIT_BAL` for rows with positive credit limits. The final SQL completeness check returned zero missing values across the five engineered features, and the ratio validation query returned zero mismatches.
+
+## 7. Modelling Considerations
+
+For the primary modelling exercise, I excluded `SEX`, `EDUCATION`, `MARRIAGE`, and `AGE` from the predictor set. The final model used 24 predictors, including the five engineered features, after excluding these four demographic variables from the 28 available non-target columns.
+
+I compared a Dummy Classifier baseline with Logistic Regression and Random Forest. The evaluation included a stratified train-test split, cross-validation, and a threshold comparison using out-of-fold predictions. The detailed model results and threshold-selection limitations are recorded separately in `docs/model_evaluation.md`.
+
+Excluding demographic variables does not prove that a model is fair or free from indirect bias. This project does not establish production suitability for lending decisions.
+
+## 8. Source
 
 UCI Machine Learning Repository: [Default of Credit Card Clients](https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients)
 
-DOI: `10.24432/C55S3H`
+Dataset DOI: [10.24432/C55S3H](https://doi.org/10.24432/C55S3H)
+
+Yeh, I.-C., & Lien, C.-H. (2009). *The comparisons of data mining techniques for the predictive accuracy of probability of default of credit card clients*. Expert Systems with Applications.
